@@ -14,55 +14,87 @@
         h1 {
             color: #333;
         }
+        button {
+            margin: 10px;
+        }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.4.1/dist/socket.io.min.js"></script>
 </head>
 <body>
-    <h1>Contrôle du son à distance</h1>
-    <button id="start">Démarrer</button>
-    <button id="stop">Arrêter</button>
-
-    <h2>Microphone</h2>
-    <button id="start-micro">Diffuser le Micro</button>
+    <h1>Contrôle à distance du son</h1>
+    <button id="play-main">Jouer Son Principal</button>
+    <button id="stop-main">Arrêter Son Principal</button>
+    
+    <h2>Fichiers Audio</h2>
+    <button id="play-audio1">Jouer Audio 1</button>
+    <button id="stop-audio1">Arrêter Audio 1</button>
+    <button id="play-audio2">Jouer Audio 2</button>
+    <button id="stop-audio2">Arrêter Audio 2</button>
 
     <script>
-        const socket = io('http://localhost:3000');
+        let mainAudioPlaying = false;
 
-        document.getElementById('start-micro').addEventListener('click', () => {
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(stream => {
-                    const peer = new SimplePeer({ initiator: true, trickle: false });
-                    peer.on('signal', signal => {
-                        socket.emit('offer', signal);
-                    });
-                    peer.on('stream', remoteStream => {
-                        // Afficher le flux audio local ou le diffuser ailleurs si nécessaire
-                    });
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let mainGainNode;
+        let mainOscillator;
 
-                    socket.on('offer', offer => {
-                        peer.signal(offer);
-                    });
+        // Fonctions pour le son principal
+        function startMainAudio() {
+            if (!mainAudioPlaying) {
+                mainAudioPlaying = true;
 
-                    socket.on('answer', answer => {
-                        peer.signal(answer);
-                    });
+                mainGainNode = audioContext.createGain();
+                mainOscillator = audioContext.createOscillator();
+                mainOscillator.type = 'sine';
+                mainOscillator.frequency.setValueAtTime(250, audioContext.currentTime);
+                mainGainNode.gain.setValueAtTime(1, audioContext.currentTime);
 
-                    socket.on('ice-candidate', candidate => {
-                        peer.signal(candidate);
-                    });
+                mainOscillator.connect(mainGainNode);
+                mainGainNode.connect(audioContext.destination);
 
-                    peer.on('signal', signal => {
-                        socket.emit('answer', signal);
-                    });
+                mainOscillator.start();
+                mainOscillator.stop(audioContext.currentTime + 10); // Arrêter après 10 secondes pour cet exemple
 
-                    peer.on('stream', stream => {
-                        socket.emit('stream', stream);
-                    });
-                })
-                .catch(err => {
-                    console.error('Erreur lors de l\'accès au micro :', err);
-                });
-        });
+                mainOscillator.onended = () => {
+                    mainAudioPlaying = false;
+                };
+            }
+        }
+
+        function stopMainAudio() {
+            if (mainAudioPlaying && mainOscillator) {
+                mainOscillator.stop();
+                mainAudioPlaying = false;
+            }
+        }
+
+        document.getElementById('play-main').addEventListener('click', startMainAudio);
+        document.getElementById('stop-main').addEventListener('click', stopMainAudio);
+
+        // Fonctions pour les fichiers audio
+        const audioFiles = {
+            audio1: new Audio('audio1.mp3'),
+            audio2: new Audio('audio2.mp3')
+        };
+
+        function playAudio(fileName) {
+            const audio = audioFiles[fileName];
+            if (audio) {
+                audio.play();
+            }
+        }
+
+        function stopAudio(fileName) {
+            const audio = audioFiles[fileName];
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        }
+
+        document.getElementById('play-audio1').addEventListener('click', () => playAudio('audio1'));
+        document.getElementById('stop-audio1').addEventListener('click', () => stopAudio('audio1'));
+        document.getElementById('play-audio2').addEventListener('click', () => playAudio('audio2'));
+        document.getElementById('stop-audio2').addEventListener('click', () => stopAudio('audio2'));
     </script>
 </body>
 </html>
