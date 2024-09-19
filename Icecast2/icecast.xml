@@ -9,7 +9,7 @@
         <admin-password>admin-password</admin-password>
     </authentication>
 
-    <hostname>101.33.200.32</hostname> <!-- Remplace par l'adresse IP de ton serveur -->
+    <hostname>keyfront.github.io/keycast/index.html</hostname> <!-- Remplace par l'adresse IP de ton serveur -->
     <listen-socket>
         <port>8000</port> <!-- Le port par défaut pour Icecast -->
     </listen-socket>
