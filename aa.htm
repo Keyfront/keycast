@@ -4,10 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contrôle à distance du son</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    <script>
-        // Configuration de Firebase
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-database.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-analytics.js";
+
+        // Configuration Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyD8PxCxK9lMIwGDzUMgj9NNkmuT8-pqJkg",
             authDomain: "buzz-95789.firebaseapp.com",
@@ -19,51 +33,49 @@
             measurementId: "G-EBWLXSM9PY"
         };
 
-        // Initialisation de Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const database = getDatabase(app);
 
-        // Fonction pour envoyer une commande à Firebase
-        function sendCommand(command) {
-            const commandRef = database.ref('commands/');
-            commandRef.set({ action: command })
-                .then(() => console.log('Command sent:', command))
-                .catch(error => console.error('Error sending command:', error));
-        }
+        // Référence à la base de données pour les contrôles audio
+        const audioControlRef = ref(database, 'audioControl');
 
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('play-main').addEventListener('click', () => sendCommand('play-main'));
-            document.getElementById('stop-main').addEventListener('click', () => sendCommand('stop-main'));
-            document.getElementById('play-audio1').addEventListener('click', () => sendCommand('play-audio1'));
-            document.getElementById('stop-audio1').addEventListener('click', () => sendCommand('stop-audio1'));
-            document.getElementById('play-audio2').addEventListener('click', () => sendCommand('play-audio2'));
-            document.getElementById('stop-audio2').addEventListener('click', () => sendCommand('stop-audio2'));
+            document.getElementById('start').addEventListener('click', () => {
+                set(audioControlRef, { state: 'start' });
+            });
+
+            document.getElementById('stop').addEventListener('click', () => {
+                set(audioControlRef, { state: 'stop' });
+            });
+
+            // Accès au micro et diffusion
+            document.getElementById('start-micro').addEventListener('click', () => {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        const audioContext = new AudioContext();
+                        const source = audioContext.createMediaStreamSource(stream);
+                        const gainNode = audioContext.createGain();
+                        source.connect(gainNode).connect(audioContext.destination);
+                        
+                        // Stocker le flux audio dans Firebase ou envoyer ailleurs si nécessaire
+                        const audioStreamRef = ref(database, 'microphoneStream');
+                        set(audioStreamRef, { stream: 'broadcast' }); // C'est un exemple ; tu devras adapter selon tes besoins
+                    })
+                    .catch(err => {
+                        console.error('Erreur lors de l\'accès au micro :', err);
+                    });
+            });
         });
     </script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-            background-color: #f0f0f0;
-        }
-        h1 {
-            color: #333;
-        }
-        button {
-            margin: 10px;
-        }
-    </style>
 </head>
 <body>
-    <h1>Contrôle à distance du son</h1>
-    <button id="play-main">Jouer Son Principal</button>
-    <button id="stop-main">Arrêter Son Principal</button>
-    
-    <h2>Fichiers Audio</h2>
-    <button id="play-audio1">Jouer Audio 1</button>
-    <button id="stop-audio1">Arrêter Audio 1</button>
-    <button id="play-audio2">Jouer Audio 2</button>
-    <button id="stop-audio2">Arrêter Audio 2</button>
+    <h1>Contrôle du son à distance</h1>
+    <button id="start">Démarrer</button>
+    <button id="stop">Arrêter</button>
+
+    <h2>Microphone</h2>
+    <button id="start-micro">Diffuser le Micro</button>
 </body>
 </html>
