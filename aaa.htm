@@ -1,94 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Corne de Brume et Bips</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    <script>
-        // Configuration de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyD8PxCxK9lMIwGDzUMgj9NNkmuT8-pqJkg",
-            authDomain: "buzz-95789.firebaseapp.com",
-            databaseURL: "https://buzz-95789-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "buzz-95789",
-            storageBucket: "buzz-95789.appspot.com",
-            messagingSenderId: "353855850728",
-            appId: "1:353855850728:web:41295ed94e57160348e15d",
-            measurementId: "G-EBWLXSM9PY"
-        };
-
-        // Initialisation de Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        let audioContext = null;
-        let mainAudioPlaying = false;
-
-        function startMainAudio() {
-            if (!mainAudioPlaying) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const mainGainNode = audioContext.createGain();
-                const mainOscillator = audioContext.createOscillator();
-                mainOscillator.type = 'sine';
-                mainOscillator.frequency.setValueAtTime(250, audioContext.currentTime);
-                mainGainNode.gain.setValueAtTime(1, audioContext.currentTime);
-                mainOscillator.connect(mainGainNode);
-                mainGainNode.connect(audioContext.destination);
-                mainOscillator.start();
-                mainOscillator.stop(audioContext.currentTime + 10);
-
-                mainOscillator.onended = () => {
-                    mainAudioPlaying = false;
-                };
-
-                mainAudioPlaying = true;
-            }
-        }
-
-        function stopMainAudio() {
-            if (audioContext && mainAudioPlaying) {
-                audioContext.close();
-                mainAudioPlaying = false;
-            }
-        }
-
-        function playAudio(fileName) {
-            const audio = new Audio(fileName);
-            audio.play();
-        }
-
-        function stopAudio(audio) {
-            audio.pause();
-            audio.currentTime = 0;
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const commandRef = database.ref('commands/');
-            commandRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    const command = data.action;
-                    if (command === 'play-main') {
-                        startMainAudio();
-                    } else if (command === 'stop-main') {
-                        stopMainAudio();
-                    } else if (command === 'play-audio1') {
-                        playAudio('audio1.mp3');
-                    } else if (command === 'stop-audio1') {
-                        stopAudio('audio1.mp3');
-                    } else if (command === 'play-audio2') {
-                        playAudio('audio2.mp3');
-                    } else if (command === 'stop-audio2') {
-                        stopAudio('audio2.mp3');
-                    }
-                    // Réinitialiser la commande après l'exécution
-                    commandRef.set(null);
-                }
-            });
-        });
-    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -108,6 +24,123 @@
             margin-top: 20px;
         }
     </style>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-database.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-analytics.js";
+
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD8PxCxK9lMIwGDzUMgj9NNkmuT8-pqJkg",
+            authDomain: "buzz-95789.firebaseapp.com",
+            databaseURL: "https://buzz-95789-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "buzz-95789",
+            storageBucket: "buzz-95789.appspot.com",
+            messagingSenderId: "353855850728",
+            appId: "1:353855850728:web:41295ed94e57160348e15d",
+            measurementId: "G-EBWLXSM9PY"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const database = getDatabase(app);
+
+        let audioCtx;
+        let fogHornInterval, beepInterval;
+        let gainNode, oscillator;
+
+        function startFogHornAndBeeps() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            function playFogHorn() {
+                oscillator = audioCtx.createOscillator();
+                gainNode = audioCtx.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
+                
+                gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.start();
+                
+                fogHornInterval = setInterval(() => {
+                    gainNode.gain.setValueAtTime(50, audioCtx.currentTime);
+                    setTimeout(() => {
+                        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    }, 1500);
+                    
+                }, 3500);
+            }
+            
+            function playBeeps() {
+                const beepIntervalDuration = 1000;
+                const beepDuration = 600;
+                
+                function singleBeep() {
+                    const beepOscillator = audioCtx.createOscillator();
+                    const beepGainNode = audioCtx.createGain();
+                    
+                    beepOscillator.type = 'sine';
+                    beepOscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    
+                    beepGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                    beepOscillator.connect(beepGainNode);
+                    beepGainNode.connect(audioCtx.destination);
+                    
+                    beepOscillator.start();
+                    beepOscillator.stop(audioCtx.currentTime + (beepDuration / 1000));
+                }
+                
+                beepInterval = setInterval(() => {
+                    singleBeep();
+                    setTimeout(singleBeep, beepIntervalDuration);
+                    setTimeout(singleBeep, 2 * beepIntervalDuration);
+                }, 60000);
+            }
+
+            playFogHorn();
+            playBeeps();
+        }
+
+        function stopFogHornAndBeeps() {
+            clearInterval(fogHornInterval);
+            clearInterval(beepInterval);
+            if (oscillator) oscillator.stop();
+            if (gainNode) gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        }
+
+        // Écouter les changements dans Firebase
+        const audioControlRef = ref(database, 'audioControl');
+
+        onValue(audioControlRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                if (data.state === 'start') {
+                    startFogHornAndBeeps();
+                } else if (data.state === 'stop') {
+                    stopFogHornAndBeeps();
+                }
+            }
+        });
+
+        // Gestion de l'autorisation de l'audio
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('allow-audio').addEventListener('click', () => {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                audioCtx.resume().then(() => {
+                    console.log('Audio context resumed and audio should now be allowed.');
+                }).catch(error => {
+                    console.error('Erreur lors de la reprise du contexte audio:', error);
+                });
+            });
+        });
+    </script>
 </head>
 <body>
     <h1>Corne de Brume et Bips Longs</h1>
