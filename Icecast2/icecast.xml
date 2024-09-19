@@ -1,0 +1,26 @@
+<icecast>
+    <limits>
+        <clients>100</clients> <!-- Nombre max d'auditeurs -->
+        <sources>2</sources>
+    </limits>
+
+    <authentication>
+        <admin-user>admin</admin-user>
+        <admin-password>admin-password</admin-password>
+    </authentication>
+
+    <hostname>101.33.200.32</hostname> <!-- Remplace par l'adresse IP de ton serveur -->
+    <listen-socket>
+        <port>8000</port> <!-- Le port par défaut pour Icecast -->
+    </listen-socket>
+
+    <mount>
+        <mount-name>/stream</mount-name>
+        <file>/path/to/your/music.mp3</file> <!-- Chemin vers tes fichiers audio -->
+        <bitrate>128</bitrate>
+        <genre>Rock</genre> <!-- Genre de musique -->
+        <public>1</public> <!-- Permet de rendre le flux public -->
+    </mount>
+
+    <fileserve>1</fileserve>
+</icecast>
