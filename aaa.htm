@@ -23,127 +23,33 @@
             margin-top: 20px;
         }
     </style>
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-analytics.js";
-
-        // Configuration Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyD8PxCxK9lMIwGDzUMgj9NNkmuT8-pqJkg",
-            authDomain: "buzz-95789.firebaseapp.com",
-            databaseURL: "https://buzz-95789-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "buzz-95789",
-            storageBucket: "buzz-95789.appspot.com",
-            messagingSenderId: "353855850728",
-            appId: "1:353855850728:web:41295ed94e57160348e15d",
-            measurementId: "G-EBWLXSM9PY"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const database = getDatabase(app);
-
-        let audioCtx;
-        let fogHornInterval, beepInterval;
-        let gainNode, oscillator;
-
-        function startFogHornAndBeeps() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            function playFogHorn() {
-                oscillator = audioCtx.createOscillator();
-                gainNode = audioCtx.createGain();
-                
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
-                
-                gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                
-                oscillator.start();
-                
-                fogHornInterval = setInterval(() => {
-                    gainNode.gain.setValueAtTime(50, audioCtx.currentTime);
-                    setTimeout(() => {
-                        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                    }, 1500);
-                    
-                }, 3500);
-            }
-            
-            function playBeeps() {
-                const beepIntervalDuration = 1000;
-                const beepDuration = 600;
-                
-                function singleBeep() {
-                    const beepOscillator = audioCtx.createOscillator();
-                    const beepGainNode = audioCtx.createGain();
-                    
-                    beepOscillator.type = 'sine';
-                    beepOscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-                    
-                    beepGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                    beepOscillator.connect(beepGainNode);
-                    beepGainNode.connect(audioCtx.destination);
-                    
-                    beepOscillator.start();
-                    beepOscillator.stop(audioCtx.currentTime + (beepDuration / 1000));
-                }
-                
-                beepInterval = setInterval(() => {
-                    singleBeep();
-                    setTimeout(singleBeep, beepIntervalDuration);
-                    setTimeout(singleBeep, 2 * beepIntervalDuration);
-                }, 60000);
-            }
-
-            playFogHorn();
-            playBeeps();
-        }
-
-        function stopFogHornAndBeeps() {
-            clearInterval(fogHornInterval);
-            clearInterval(beepInterval);
-            if (oscillator) oscillator.stop();
-            if (gainNode) gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-        }
-
-        // Écouter les changements dans Firebase
-        const audioControlRef = ref(database, 'audioControl');
-
-        onValue(audioControlRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                if (data.state === 'start') {
-                    startFogHornAndBeeps();
-                } else if (data.state === 'stop') {
-                    stopFogHornAndBeeps();
-                }
-            }
-        });
-
-        // Gestion de l'autorisation de l'audio
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('allow-audio').addEventListener('click', () => {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                audioCtx.resume().then(() => {
-                    console.log('Audio context resumed and audio should now be allowed.');
-                }).catch(error => {
-                    console.error('Erreur lors de la reprise du contexte audio:', error);
-                });
-            });
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.4.1/dist/socket.io.min.js"></script>
 </head>
 <body>
     <h1>Corne de Brume et Bips Longs</h1>
     <div id="now-playing">Son en cours...</div>
     <button id="allow-audio">Autoriser l'audio</button>
+
+    <script>
+        const socket = io('http://localhost:3000');
+        let audioCtx;
+
+        document.getElementById('allow-audio').addEventListener('click', () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            audioCtx.resume().then(() => {
+                console.log('Audio context resumed and audio should now be allowed.');
+            }).catch(error => {
+                console.error('Erreur lors de la reprise du contexte audio:', error);
+            });
+        });
+
+        socket.on('stream', stream => {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(audioCtx.destination);
+        });
+    </script>
 </body>
 </html>
