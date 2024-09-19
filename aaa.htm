@@ -4,6 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Corne de Brume et Bips</title>
+    <script type="module">
+        import { database, ref, onValue } from './firebaseConfig.js';
+
+        let audioContext = null;
+        let mainAudioPlaying = false;
+
+        function startMainAudio() {
+            if (!mainAudioPlaying) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const mainGainNode = audioContext.createGain();
+                const mainOscillator = audioContext.createOscillator();
+                mainOscillator.type = 'sine';
+                mainOscillator.frequency.setValueAtTime(250, audioContext.currentTime);
+                mainGainNode.gain.setValueAtTime(1, audioContext.currentTime);
+                mainOscillator.connect(mainGainNode);
+                mainGainNode.connect(audioContext.destination);
+                mainOscillator.start();
+                mainOscillator.stop(audioContext.currentTime + 10);
+
+                mainOscillator.onended = () => {
+                    mainAudioPlaying = false;
+                };
+
+                mainAudioPlaying = true;
+            }
+        }
+
+        function stopMainAudio() {
+            if (audioContext && mainAudioPlaying) {
+                audioContext.close();
+                mainAudioPlaying = false;
+            }
+        }
+
+        function playAudio(fileName) {
+            const audio = new Audio(fileName);
+            audio.play();
+        }
+
+        function stopAudio(audio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const commandRef = ref(database, 'commands/');
+            onValue(commandRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const command = data.action;
+                    if (command === 'play-main') {
+                        startMainAudio();
+                    } else if (command === 'stop-main') {
+                        stopMainAudio();
+                    } else if (command === 'play-audio1') {
+                        playAudio('audio1.mp3');
+                    } else if (command === 'stop-audio1') {
+                        stopAudio('audio1.mp3');
+                    } else if (command === 'play-audio2') {
+                        playAudio('audio2.mp3');
+                    } else if (command === 'stop-audio2') {
+                        stopAudio('audio2.mp3');
+                    }
+                    // Réinitialiser la commande après l'exécution
+                    set(commandRef, null);
+                }
+            });
+        });
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,33 +92,10 @@
             margin-top: 20px;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.4.1/dist/socket.io.min.js"></script>
 </head>
 <body>
     <h1>Corne de Brume et Bips Longs</h1>
     <div id="now-playing">Son en cours...</div>
     <button id="allow-audio">Autoriser l'audio</button>
-
-    <script>
-        const socket = io('http://localhost:3000');
-        let audioCtx;
-
-        document.getElementById('allow-audio').addEventListener('click', () => {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            audioCtx.resume().then(() => {
-                console.log('Audio context resumed and audio should now be allowed.');
-            }).catch(error => {
-                console.error('Erreur lors de la reprise du contexte audio:', error);
-            });
-        });
-
-        socket.on('stream', stream => {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(audioCtx.destination);
-        });
-    </script>
 </body>
 </html>
