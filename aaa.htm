@@ -19,14 +19,33 @@
             font-size: 20px;
             color: #666;
         }
+        #allow-audio {
+            margin-top: 20px;
+        }
     </style>
-</head>
-<body>
-    <h1>Corne de Brume et Bips Longs</h1>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-database.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-analytics.js";
 
-    <div id="now-playing">Son en cours...</div>
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD8PxCxK9lMIwGDzUMgj9NNkmuT8-pqJkg",
+            authDomain: "buzz-95789.firebaseapp.com",
+            databaseURL: "https://buzz-95789-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "buzz-95789",
+            storageBucket: "buzz-95789.appspot.com",
+            messagingSenderId: "353855850728",
+            appId: "1:353855850728:web:41295ed94e57160348e15d",
+            measurementId: "G-EBWLXSM9PY"
+        };
 
-    <script>
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const database = getDatabase(app);
+
         let audioCtx;
         let fogHornInterval, beepInterval;
         let gainNode, oscillator;
@@ -38,7 +57,7 @@
                 oscillator = audioCtx.createOscillator();
                 gainNode = audioCtx.createGain();
                 
-                oscillator.type = 'sine'; // Son de la corne de brume
+                oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
                 
                 gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
@@ -93,16 +112,38 @@
             if (gainNode) gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
         }
 
-        // Utilisation de BroadcastChannel pour écouter les messages de contrôle
-        const channel = new BroadcastChannel('audio_control');
+        // Écouter les changements dans Firebase
+        const audioControlRef = ref(database, 'audioControl');
 
-        channel.onmessage = (event) => {
-            if (event.data === 'start') {
-                startFogHornAndBeeps();
-            } else if (event.data === 'stop') {
-                stopFogHornAndBeeps();
+        onValue(audioControlRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                if (data.state === 'start') {
+                    startFogHornAndBeeps();
+                } else if (data.state === 'stop') {
+                    stopFogHornAndBeeps();
+                }
             }
-        };
+        });
+
+        // Gestion de l'autorisation de l'audio
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('allow-audio').addEventListener('click', () => {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                audioCtx.resume().then(() => {
+                    console.log('Audio context resumed and audio should now be allowed.');
+                }).catch(error => {
+                    console.error('Erreur lors de la reprise du contexte audio:', error);
+                });
+            });
+        });
     </script>
+</head>
+<body>
+    <h1>Corne de Brume et Bips Longs</h1>
+    <div id="now-playing">Son en cours...</div>
+    <button id="allow-audio">Autoriser l'audio</button>
 </body>
 </html>
