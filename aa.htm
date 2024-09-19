@@ -4,6 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contrôle à distance du son</title>
+    <script type="module">
+        import { database, ref, set } from './firebaseConfig.js';
+
+        function sendCommand(command) {
+            const commandRef = ref(database, 'commands/');
+            set(commandRef, { action: command });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('play-main').addEventListener('click', () => sendCommand('play-main'));
+            document.getElementById('stop-main').addEventListener('click', () => sendCommand('stop-main'));
+            document.getElementById('play-audio1').addEventListener('click', () => sendCommand('play-audio1'));
+            document.getElementById('stop-audio1').addEventListener('click', () => sendCommand('stop-audio1'));
+            document.getElementById('play-audio2').addEventListener('click', () => sendCommand('play-audio2'));
+            document.getElementById('stop-audio2').addEventListener('click', () => sendCommand('stop-audio2'));
+        });
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,72 +46,5 @@
     <button id="stop-audio1">Arrêter Audio 1</button>
     <button id="play-audio2">Jouer Audio 2</button>
     <button id="stop-audio2">Arrêter Audio 2</button>
-
-    <script>
-        let mainAudioPlaying = false;
-
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let mainGainNode;
-        let mainOscillator;
-
-        // Fonctions pour le son principal
-        function startMainAudio() {
-            if (!mainAudioPlaying) {
-                mainAudioPlaying = true;
-
-                mainGainNode = audioContext.createGain();
-                mainOscillator = audioContext.createOscillator();
-                mainOscillator.type = 'sine';
-                mainOscillator.frequency.setValueAtTime(250, audioContext.currentTime);
-                mainGainNode.gain.setValueAtTime(1, audioContext.currentTime);
-
-                mainOscillator.connect(mainGainNode);
-                mainGainNode.connect(audioContext.destination);
-
-                mainOscillator.start();
-                mainOscillator.stop(audioContext.currentTime + 10); // Arrêter après 10 secondes pour cet exemple
-
-                mainOscillator.onended = () => {
-                    mainAudioPlaying = false;
-                };
-            }
-        }
-
-        function stopMainAudio() {
-            if (mainAudioPlaying && mainOscillator) {
-                mainOscillator.stop();
-                mainAudioPlaying = false;
-            }
-        }
-
-        document.getElementById('play-main').addEventListener('click', startMainAudio);
-        document.getElementById('stop-main').addEventListener('click', stopMainAudio);
-
-        // Fonctions pour les fichiers audio
-        const audioFiles = {
-            audio1: new Audio('audio1.mp3'),
-            audio2: new Audio('audio2.mp3')
-        };
-
-        function playAudio(fileName) {
-            const audio = audioFiles[fileName];
-            if (audio) {
-                audio.play();
-            }
-        }
-
-        function stopAudio(fileName) {
-            const audio = audioFiles[fileName];
-            if (audio) {
-                audio.pause();
-                audio.currentTime = 0;
-            }
-        }
-
-        document.getElementById('play-audio1').addEventListener('click', () => playAudio('audio1'));
-        document.getElementById('stop-audio1').addEventListener('click', () => stopAudio('audio1'));
-        document.getElementById('play-audio2').addEventListener('click', () => playAudio('audio2'));
-        document.getElementById('stop-audio2').addEventListener('click', () => stopAudio('audio2'));
-    </script>
 </body>
 </html>
