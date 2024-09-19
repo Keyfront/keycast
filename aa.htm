@@ -15,60 +15,7 @@
             color: #333;
         }
     </style>
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-app.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-analytics.js";
-
-        // Configuration Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyD8PxCxK9lMIwGDzUMgj9NNkmuT8-pqJkg",
-            authDomain: "buzz-95789.firebaseapp.com",
-            databaseURL: "https://buzz-95789-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "buzz-95789",
-            storageBucket: "buzz-95789.appspot.com",
-            messagingSenderId: "353855850728",
-            appId: "1:353855850728:web:41295ed94e57160348e15d",
-            measurementId: "G-EBWLXSM9PY"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const database = getDatabase(app);
-
-        // Référence à la base de données pour les contrôles audio
-        const audioControlRef = ref(database, 'audioControl');
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('start').addEventListener('click', () => {
-                set(audioControlRef, { state: 'start' });
-            });
-
-            document.getElementById('stop').addEventListener('click', () => {
-                set(audioControlRef, { state: 'stop' });
-            });
-
-            // Accès au micro et diffusion
-            document.getElementById('start-micro').addEventListener('click', () => {
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(stream => {
-                        const audioContext = new AudioContext();
-                        const source = audioContext.createMediaStreamSource(stream);
-                        const gainNode = audioContext.createGain();
-                        source.connect(gainNode).connect(audioContext.destination);
-                        
-                        // Stocker le flux audio dans Firebase ou envoyer ailleurs si nécessaire
-                        const audioStreamRef = ref(database, 'microphoneStream');
-                        set(audioStreamRef, { stream: 'broadcast' }); // C'est un exemple ; tu devras adapter selon tes besoins
-                    })
-                    .catch(err => {
-                        console.error('Erreur lors de l\'accès au micro :', err);
-                    });
-            });
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.4.1/dist/socket.io.min.js"></script>
 </head>
 <body>
     <h1>Contrôle du son à distance</h1>
@@ -77,5 +24,45 @@
 
     <h2>Microphone</h2>
     <button id="start-micro">Diffuser le Micro</button>
+
+    <script>
+        const socket = io('http://localhost:3000');
+
+        document.getElementById('start-micro').addEventListener('click', () => {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    const peer = new SimplePeer({ initiator: true, trickle: false });
+                    peer.on('signal', signal => {
+                        socket.emit('offer', signal);
+                    });
+                    peer.on('stream', remoteStream => {
+                        // Afficher le flux audio local ou le diffuser ailleurs si nécessaire
+                    });
+
+                    socket.on('offer', offer => {
+                        peer.signal(offer);
+                    });
+
+                    socket.on('answer', answer => {
+                        peer.signal(answer);
+                    });
+
+                    socket.on('ice-candidate', candidate => {
+                        peer.signal(candidate);
+                    });
+
+                    peer.on('signal', signal => {
+                        socket.emit('answer', signal);
+                    });
+
+                    peer.on('stream', stream => {
+                        socket.emit('stream', stream);
+                    });
+                })
+                .catch(err => {
+                    console.error('Erreur lors de l\'accès au micro :', err);
+                });
+        });
+    </script>
 </body>
 </html>
