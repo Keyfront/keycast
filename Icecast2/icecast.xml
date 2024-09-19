@@ -16,7 +16,7 @@
 
     <mount>
         <mount-name>/stream</mount-name>
-        <file>/path/to/your/music.mp3</file> <!-- Chemin vers tes fichiers audio -->
+        <file>http://radio-active.net:8000/active</file> <!-- Chemin vers tes fichiers audio -->
         <bitrate>128</bitrate>
         <genre>Rock</genre> <!-- Genre de musique -->
         <public>1</public> <!-- Permet de rendre le flux public -->
