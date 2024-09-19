@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôle à distance du son</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Contrôle du son à distance</h1>
+    <button id="start">Démarrer</button>
+    <button id="stop">Arrêter</button>
+    
+    <iframe src="aaa.ht" frameborder="0">aaa.ht</iframe>
+
+    <h2>Microphone</h2>
+    <button id="start-micro">Diffuser le Micro</button>
+
+    <script>
+        // Utilisation de BroadcastChannel pour envoyer des commandes à la page principale
+        const channel = new BroadcastChannel('audio_control');
+
+        document.getElementById('start').addEventListener('click', () => {
+            channel.postMessage('start');
+        });
+
+        document.getElementById('stop').addEventListener('click', () => {
+            channel.postMessage('stop');
+        });
+
+        // Accès au micro et diffusion
+        document.getElementById('start-micro').addEventListener('click', () => {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    const audioContext = new AudioContext();
+                    const source = audioContext.createMediaStreamSource(stream);
+                    const gainNode = audioContext.createGain();
+                    source.connect(gainNode).connect(audioContext.destination);
+                })
+                .catch(err => {
+                    console.error('Erreur lors de l\'accès au micro :', err);
+                });
+        });
+    </script>
+</body>
+</html>
