@@ -1,0 +1,15 @@
+{
+  "name": "radio-web-page",
+  "version": "1.0.0",
+  "description": "A simple web page for streaming radio.",
+  "scripts": {
+    "build": "jekyll build",
+    "start": "jekyll serve"
+  },
+  "dependencies": {
+    "jekyll": "^4.2.0"
+  },
+  "devDependencies": {},
+  "author": "Ton Nom",
+  "license": "MIT"
+}
